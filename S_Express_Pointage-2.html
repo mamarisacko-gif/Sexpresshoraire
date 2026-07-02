@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>S Express — Pointage</title>
+<style>
+  :root{
+    --navy:#12283F; --navy2:#1B3A5C; --gold:#B08D57; --gold2:#C9A96E;
+    --bg:#F4F1EA; --card:#FFFFFF; --ink:#1B2530; --muted:#6B7280;
+    --green:#2E7D5B; --yellow:#B8860B; --orange:#C2600B; --red:#B03A2E;
+    --line:#E4E0D6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+  header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;padding:22px 18px 26px;
+    border-bottom:4px solid var(--gold);}
+  header .brand{font-size:12px;letter-spacing:2.5px;color:var(--gold2);font-weight:700;text-transform:uppercase;}
+  header h1{margin:4px 0 0;font-size:22px;font-weight:800;}
+  header .sub{margin-top:4px;font-size:13px;color:#C7D2DE;}
+
+  .tabs{display:flex;gap:0;background:var(--card);position:sticky;top:0;z-index:5;border-bottom:1px solid var(--line);}
+  .tab{flex:1;text-align:center;padding:13px 6px;font-size:14px;font-weight:700;color:var(--muted);
+    border-bottom:3px solid transparent;cursor:pointer;}
+  .tab.active{color:var(--navy);border-bottom-color:var(--gold);}
+
+  main{max-width:520px;margin:0 auto;padding:18px 16px 60px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;
+    box-shadow:0 1px 3px rgba(20,30,45,.05);}
+  .card h2{margin:0 0 12px;font-size:15px;color:var(--navy);text-transform:uppercase;letter-spacing:1px;}
+
+  select, input{width:100%;padding:13px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:16px;
+    margin-bottom:12px;background:#fff;color:var(--ink);}
+  label{font-size:13px;color:var(--muted);font-weight:600;display:block;margin-bottom:6px;}
+
+  .btn{display:block;width:100%;padding:16px;border:none;border-radius:12px;font-size:16px;font-weight:800;
+    cursor:pointer;margin-bottom:10px;letter-spacing:.3px;}
+  .btn-arrivee{background:var(--navy);color:#fff;}
+  .btn-depart{background:#fff;color:var(--navy);border:2px solid var(--navy);}
+  .btn-signal{background:#fff;color:var(--gold);border:2px solid var(--gold);}
+  .btn-admin{background:var(--gold);color:#fff;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn:active:not(:disabled){transform:scale(.98);}
+
+  .status{border-radius:12px;padding:14px 16px;margin-bottom:14px;font-size:14px;line-height:1.5;}
+  .status.ok{background:#E8F3EC;color:var(--green);border:1px solid #C6E4D1;}
+  .status.warn{background:#FFF4E0;color:var(--yellow);border:1px solid #F0DDB0;}
+  .status.bad{background:#FBE8E5;color:var(--red);border:1px solid #F1C6BF;}
+  .status.info{background:#EAF0F7;color:var(--navy2);border:1px solid #CBD9E8;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);}
+  th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;}
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:800;color:#fff;}
+  .b-green{background:var(--green)} .b-yellow{background:var(--yellow)}
+  .b-orange{background:var(--orange)} .b-red{background:var(--red)} .b-grey{background:#9AA5B1}
+
+  .score-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);}
+  .score-row:last-child{border-bottom:none;}
+  .score-name{font-weight:700;font-size:14px;}
+  .score-pts{font-size:20px;font-weight:800;color:var(--navy);}
+  .score-detail{font-size:12px;color:var(--muted);margin-top:2px;}
+
+  .hidden{display:none !important;}
+  .foot-note{font-size:11.5px;color:var(--muted);text-align:center;margin-top:6px;line-height:1.5;}
+  .setup{font-size:12.5px;color:var(--muted);background:#FBF9F5;border:1px dashed var(--line);border-radius:10px;padding:12px;margin-bottom:16px;}
+  .setup code{background:#EFEAE0;padding:1px 5px;border-radius:4px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">S Express Medical</div>
+  <h1>Pointage &amp; Ponctualité</h1>
+  <div class="sub">Présence 7h45 · Barème automatique sur 100 points</div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-tab="livreur">Livreur</div>
+  <div class="tab" data-tab="admin">Admin</div>
+</div>
+
+<main>
+
+  <div id="setupBox" class="setup hidden">
+    ⚙️ Configuration requise : ouvrez ce fichier, remplacez <code>SUPABASE_URL</code> et <code>SUPABASE_ANON_KEY</code>
+    en haut du script par les identifiants de votre projet Supabase, puis exécutez le script SQL fourni (voir README) pour créer les tables.
+  </div>
+
+  <!-- ===== LIVREUR TAB ===== -->
+  <section id="tab-livreur">
+
+    <div class="card">
+      <h2>Identification</h2>
+      <label>Votre nom</label>
+      <select id="selLivreur"><option value="">— Choisir —</option></select>
+      <input id="inpNewName" type="text" placeholder="Nom complet du nouveau livreur" class="hidden">
+      <label>Code PIN (4 chiffres)</label>
+      <input id="inpPin" type="tel" inputmode="numeric" maxlength="4" placeholder="••••">
+    </div>
+
+    <div id="livreurStatus"></div>
+
+    <div class="card">
+      <h2>Actions du jour</h2>
+      <button class="btn btn-signal" id="btnSignal">📣 Signaler un retard (avant 7h45)</button>
+      <button class="btn btn-arrivee" id="btnArrivee">✅ Pointer mon arrivée</button>
+      <button class="btn btn-depart" id="btnDepart">🏁 Pointer mon départ</button>
+    </div>
+
+    <div class="foot-note">L'heure enregistrée est celle du serveur, pas celle du téléphone — elle ne peut pas être modifiée après coup.</div>
+  </section>
+
+  <!-- ===== ADMIN TAB ===== -->
+  <section id="tab-admin" class="hidden">
+
+    <div class="card" id="adminGate">
+      <h2>Accès direction</h2>
+      <input id="inpAdminPass" type="password" placeholder="Mot de passe admin">
+      <button class="btn btn-admin" id="btnAdminLogin">Entrer</button>
+    </div>
+
+    <div id="adminPanel" class="hidden">
+      <div class="card">
+        <h2>Aujourd'hui — <span id="todayDate"></span></h2>
+        <table id="tblToday">
+          <thead><tr><th>Livreur</th><th>Arrivée</th><th>Statut</th><th>Pts</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <button class="btn btn-depart" id="btnRefreshToday" style="margin-top:12px;">🔄 Actualiser</button>
+      </div>
+
+      <div class="card">
+        <h2>Score du mois — <span id="monthLabel"></span></h2>
+        <div id="monthScores"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+/* ============================================================
+   S EXPRESS — POINTAGE
+   Configuration : remplacez les 2 valeurs ci-dessous par celles
+   de votre projet Supabase (Project Settings → API).
+   ============================================================ */
+const SUPABASE_URL = "https://ynatpckhrclwzzcakilh.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_YhSt4ibzzob6TfgHQmpKEQ_ZiexF4B2";
+const ADMIN_PASSWORD = "sexpress2026"; // à changer
+
+const HEURE_LIMITE = { h: 7, m: 45 };      // présence sans pénalité
+const SEUIL_RETARD_LEGER = 15;              // minutes
+const PTS = { aLheure:0, retardSignale:-5, retardNonSignale:-10, retardGrave:-20, absenceJustifiee:-10, absenceNonJustifiee:-40 };
+
+let supabaseClient = null;
+let configOk = SUPABASE_URL.indexOf("YOUR-PROJECT") === -1;
+if (configOk) {
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} else {
+  document.getElementById("setupBox").classList.remove("hidden");
+}
+
+// ---------- Tabs ----------
+document.querySelectorAll(".tab").forEach(t=>{
+  t.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    document.getElementById("tab-livreur").classList.toggle("hidden", t.dataset.tab!=="livreur");
+    document.getElementById("tab-admin").classList.toggle("hidden", t.dataset.tab!=="admin");
+  });
+});
+
+// ---------- Helpers ----------
+function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function nowUTC(){ return new Date(); }
+function minutesLate(date){
+  const limite = new Date(date);
+  limite.setUTCHours(HEURE_LIMITE.h, HEURE_LIMITE.m, 0, 0);
+  return Math.round((date - limite)/60000);
+}
+function statusBadge(statut){
+  const map = {
+    a_l_heure:['À l\'heure','b-green'], retard_signale:['Retard signalé','b-yellow'],
+    retard_non_signale:['Retard non signalé','b-orange'], retard_grave:['Retard grave','b-red'],
+    absence_justifiee:['Absence justifiée','b-yellow'], absence_non_justifiee:['Absence','b-red'],
+    en_attente:['En attente','b-grey']
+  };
+  const [label,cls] = map[statut] || ['—','b-grey'];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+function tierInfo(score){
+  if (score>=90) return {label:'Avantages complets + prime pleine', cls:'ok'};
+  if (score>=70) return {label:'Avantages maintenus, prime réduite de 50%', cls:'warn'};
+  if (score>=50) return {label:'Avantages réduits, prime supprimée, avertissement', cls:'bad'};
+  return {label:'Avantages suspendus — convocation disciplinaire', cls:'bad'};
+}
+
+// ---------- Load livreurs ----------
+async function loadLivreurs(){
+  if(!configOk) return;
+  const { data, error } = await supabaseClient.from('livreurs').select('id,nom').eq('actif', true).order('nom');
+  const sel = document.getElementById('selLivreur');
+  if (error){
+    sel.innerHTML = '<option value="">Erreur de chargement</option>';
+    showStatus('Erreur Supabase : ' + error.message + (error.hint ? ' — ' + error.hint : '') + (error.code ? ' (code ' + error.code + ')' : ''), 'bad');
+    return;
+  }
+  sel.innerHTML = '<option value="">— Choisir —</option>'
+    + data.map(l=>`<option value="${l.id}">${l.nom}</option>`).join('')
+    + '<option value="__new__">➕ Nouveau livreur (écrire mon nom)</option>';
+}
+loadLivreurs();
+
+document.getElementById('selLivreur').addEventListener('change', (e)=>{
+  document.getElementById('inpNewName').classList.toggle('hidden', e.target.value !== '__new__');
+});
+
+function showStatus(msg, type){
+  document.getElementById('livreurStatus').innerHTML = `<div class="status ${type}">${msg}</div>`;
+}
+
+async function currentLivreurId(){
+  const sel = document.getElementById('selLivreur');
+  const pin = document.getElementById('inpPin').value.trim();
+  if(!sel.value){ showStatus('Choisissez votre nom.', 'warn'); return null; }
+  if(pin.length!==4){ showStatus('Entrez votre code PIN à 4 chiffres.', 'warn'); return null; }
+
+  if(sel.value === '__new__'){
+    const nom = document.getElementById('inpNewName').value.trim();
+    if(!nom){ showStatus('Écrivez votre nom complet.', 'warn'); return null; }
+    const { data, error } = await supabaseClient.from('livreurs')
+      .insert({ nom, pin, actif:true, date_embauche: todayStr() })
+      .select('id').single();
+    if(error){ showStatus('Erreur de création : '+error.message, 'bad'); return null; }
+    showStatus(`Bienvenue ${nom} ! Votre profil a été créé — retenez bien votre PIN.`, 'info');
+    loadLivreurs();
+    return data.id;
+  }
+
+  const { data, error } = await supabaseClient.from('livreurs').select('id,pin').eq('id', sel.value).single();
+  if(error || !data || data.pin !== pin){ showStatus('PIN incorrect.', 'bad'); return null; }
+  return sel.value;
+}
+
+// ---------- Signaler un retard ----------
+document.getElementById('btnSignal').addEventListener('click', async ()=>{
+  if(!configOk) return;
+  const id = await currentLivreurId(); if(!id) return;
+  const now = nowUTC();
+  const limite = new Date(now); limite.setUTCHours(HEURE_LIMITE.h, HEURE_LIMITE.m,0,0);
+  if(now >= limite){ showStatus("Trop tard : le signalement n'est valable qu'avant 7h45.", 'bad'); return; }
+  const { error } = await supabaseClient.from('signalements').insert({ livreur_id:id, date: todayStr() });
+  if(error){ showStatus('Erreur : '+error.message, 'bad'); return; }
+  showStatus('Retard signalé avant 7h45. Votre pénalité sera réduite si vous arrivez en retard.', 'info');
+});
+
+// ---------- Pointer arrivée ----------
+document.getElementById('btnArrivee').addEventListener('click', async ()=>{
+  if(!configOk) return;
+  const id = await currentLivreurId(); if(!id) return;
+
+  const { data: existing } = await supabaseClient.from('pointages').select('id').eq('livreur_id', id).eq('date', todayStr()).maybeSingle();
+  if(existing){ showStatus('Arrivée déjà enregistrée aujourd\'hui.', 'info'); return; }
+
+  const { data: inserted, error } = await supabaseClient.from('pointages')
+    .insert({ livreur_id:id, date: todayStr() }).select('id, created_at').single();
+  if(error){ showStatus('Erreur : '+error.message, 'bad'); return; }
+
+  const arrivee = new Date(inserted.created_at);
+  const retard = minutesLate(arrivee);
+  let statut, pts, msg;
+
+  if(retard<=0){ statut='a_l_heure'; pts=PTS.aLheure; msg='À l\'heure. 0 point retiré.'; }
+  else {
+    const { data: sig } = await supabaseClient.from('signalements').select('id').eq('livreur_id', id).eq('date', todayStr()).maybeSingle();
+    if(retard<=SEUIL_RETARD_LEGER){
+      if(sig){ statut='retard_signale'; pts=PTS.retardSignale; msg=`Retard de ${retard} min (signalé). −5 points.`; }
+      else { statut='retard_non_signale'; pts=PTS.retardNonSignale; msg=`Retard de ${retard} min (non signalé). −10 points.`; }
+    } else { statut='retard_grave'; pts=PTS.retardGrave; msg=`Retard de ${retard} min. −20 points.`; }
+  }
+
+  await supabaseClient.from('pointages').update({ statut, points_retires: pts, minutes_retard: Math.max(retard,0) }).eq('id', inserted.id);
+  showStatus(msg, retard<=0?'ok':(statut==='retard_grave'?'bad':'warn'));
+});
+
+// ---------- Pointer départ ----------
+document.getElementById('btnDepart').addEventListener('click', async ()=>{
+  if(!configOk) return;
+  const id = await currentLivreurId(); if(!id) return;
+  const { data: existing } = await supabaseClient.from('pointages').select('id, heure_depart').eq('livreur_id', id).eq('date', todayStr()).maybeSingle();
+  if(!existing){ showStatus('Pointez d\'abord votre arrivée.', 'warn'); return; }
+  if(existing.heure_depart){ showStatus('Départ déjà enregistré.', 'info'); return; }
+  const { error } = await supabaseClient.from('pointages').update({ heure_depart: new Date().toISOString() }).eq('id', existing.id);
+  if(error){ showStatus('Erreur : '+error.message, 'bad'); return; }
+  showStatus('Départ enregistré. Bonne route !', 'ok');
+});
+
+// ---------- ADMIN ----------
+document.getElementById('btnAdminLogin').addEventListener('click', ()=>{
+  if(document.getElementById('inpAdminPass').value === ADMIN_PASSWORD){
+    document.getElementById('adminGate').classList.add('hidden');
+    document.getElementById('adminPanel').classList.remove('hidden');
+    loadToday(); loadMonth();
+  } else { alert('Mot de passe incorrect.'); }
+});
+document.getElementById('btnRefreshToday').addEventListener('click', loadToday);
+
+async function loadToday(){
+  if(!configOk) return;
+  document.getElementById('todayDate').textContent = new Date().toLocaleDateString('fr-FR');
+  const { data: livreurs } = await supabaseClient.from('livreurs').select('id,nom').eq('actif',true).order('nom');
+  const { data: pointages } = await supabaseClient.from('pointages').select('*').eq('date', todayStr());
+  const map = {}; (pointages||[]).forEach(p=>map[p.livreur_id]=p);
+  const tbody = document.querySelector('#tblToday tbody');
+  tbody.innerHTML = (livreurs||[]).map(l=>{
+    const p = map[l.id];
+    const heure = p ? new Date(p.created_at).toISOString().slice(11,16)+' UTC' : '—';
+    const statut = p ? p.statut : 'en_attente';
+    const pts = p ? p.points_retires : '—';
+    return `<tr><td>${l.nom}</td><td>${heure}</td><td>${statusBadge(statut)}</td><td>${pts}</td></tr>`;
+  }).join('');
+}
+
+async function loadMonth(){
+  if(!configOk) return;
+  const now = new Date();
+  const first = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(),1)).toISOString().slice(0,10);
+  document.getElementById('monthLabel').textContent = now.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  const { data: livreurs } = await supabaseClient.from('livreurs').select('id,nom').eq('actif',true).order('nom');
+  const { data: pointages } = await supabaseClient.from('pointages').select('livreur_id,points_retires').gte('date', first);
+  const totals = {};
+  (livreurs||[]).forEach(l=>totals[l.id]=0);
+  (pointages||[]).forEach(p=>{ totals[p.livreur_id] = (totals[p.livreur_id]||0) + (p.points_retires||0); });
+
+  const box = document.getElementById('monthScores');
+  box.innerHTML = '<div class="card">' + (livreurs||[]).map(l=>{
+    const score = Math.max(0, 100 + (totals[l.id]||0));
+    const tier = tierInfo(score);
+    return `<div class="score-row">
+      <div><div class="score-name">${l.nom}</div><div class="score-detail">${tier.label}</div></div>
+      <div class="score-pts">${score}</div>
+    </div>`;
+  }).join('') + '</div>';
+}
+</script>
+</body>
+</html>
